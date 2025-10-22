@@ -37,3 +37,6 @@ cd miniapp
 python -m http.server 8000
 
 Mini App будет доступна на: http://localhost:8000
+
+## 🛠 Live версия
+Сейчас Frontend работает на Git Pages, а BackEnd запущен на хостинге Render.com (Free)
