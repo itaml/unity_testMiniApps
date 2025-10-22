@@ -100,7 +100,8 @@
         <div id="top-list"></div>
     </div>
 
-    <script src="Build/test.loader.js"></script>
+    <!-- ОБНОВЛЕННЫЕ ПУТИ К UNITY ФАЙЛАМ -->
+    <script src="../unity/Build/test.loader.js"></script>
     <script>
         // TELEGRAM INIT
         const tg = window.Telegram.WebApp;
@@ -115,7 +116,7 @@
         
         // GAME STATE
         let currentScore = 0;
-        const backendUrl = 'https://unity-testminiapps.onrender.com'; // ЗАМЕНИ НА СВОЙ БЭКЕНД URL
+        const backendUrl = 'https://unity-testminiapps.onrender.com';
         
         // Show user info
         const userInfo = document.getElementById('user-info');
@@ -126,19 +127,19 @@
             userInfo.innerHTML = 'Guest (open in Telegram for full features)';
         }
 
-        // GLOBAL FUNCTION FOR UNITY - ВАЖНО! Должна быть глобальной
+        // GLOBAL FUNCTION FOR UNITY
         window.UpdateScore = function(score) {
             console.log("Score from Unity:", score);
             currentScore = score;
             document.getElementById('current-score').textContent = score;
         };
 
-        // UNITY INIT
+        // UNITY INIT С ОБНОВЛЕННЫМИ ПУТЯМИ
         createUnityInstance(document.querySelector("#unity-canvas"), {
             arguments: [],
-            dataUrl: "Build/test.data.unityweb",
-            frameworkUrl: "Build/test.framework.js.unityweb",
-            codeUrl: "Build/test.wasm.unityweb",
+            dataUrl: "../unity/Build/test.data.unityweb",
+            frameworkUrl: "../unity/Build/test.framework.js.unityweb",
+            codeUrl: "../unity/Build/test.wasm.unityweb",
             streamingAssetsUrl: "StreamingAssets",
             companyName: "DefaultCompany",
             productName: "Test Project",

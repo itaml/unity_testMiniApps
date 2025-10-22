@@ -1,0 +1,37 @@
+name: Deploy MiniApp to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+        
+      - name: Copy files for deployment
+        run: |
+          # Копируем index.html из miniapp
+          cp miniapp/index.html ./
+          
+          # Копируем Unity Build файлы (сохраняем структуру)
+          mkdir -p Build
+          cp -r unity/Build/* ./Build/
+          
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: .
+          
+      - name: Deploy to GitHub Pages
+        uses: actions/deploy-pages@v2
