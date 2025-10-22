@@ -1,0 +1,230 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Unity Telegram Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .header {
+            color: white;
+            margin-bottom: 20px;
+        }
+        .controls {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            background: white;
+            color: #667eea;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+        }
+        #unity-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        #unity-canvas {
+            background: #231F20;
+            border-radius: 15px;
+        }
+        #top-list {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            display: none;
+        }
+        .user-info {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 10px;
+            color: white;
+            margin-bottom: 15px;
+        }
+        .score-display {
+            font-size: 18px;
+            font-weight: bold;
+            color: white;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Unity Game in Telegram</h1>
+            <div class="user-info" id="user-info">
+                Loading...
+            </div>
+            <div class="score-display" id="score-display">
+                Score: <span id="current-score">0</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="saveScore()">Save Score</button>
+            <button onclick="loadTop()">Top-10</button>
+            <button onclick="showPayment()">Buy Stars</button>
+        </div>
+
+        <div id="unity-container">
+            <canvas id="unity-canvas" width=960 height=600></canvas>
+        </div>
+
+        <div id="top-list"></div>
+    </div>
+
+    <script src="Build/unity.loader.js"></script>
+    <script>
+        // TELEGRAM INIT
+        const tg = window.Telegram.WebApp;
+        
+        if (tg) {
+            tg.expand();
+            tg.ready();
+            console.log("Telegram WebApp initialized");
+        } else {
+            console.log("Running outside Telegram");
+        }
+        
+        // GAME STATE
+        let currentScore = 0;
+        const backendUrl = 'http://localhost:5000';
+        
+        // Show user info
+        const userInfo = document.getElementById('user-info');
+        const user = tg ? tg.initDataUnsafe?.user : null;
+        if (user) {
+            userInfo.innerHTML = 'Player: ' + (user.first_name || 'Anonymous') + ' | ID: ' + user.id;
+        } else {
+            userInfo.innerHTML = 'Guest (open in Telegram for full features)';
+        }
+
+        // UNITY INIT
+        const unityInstance = createUnityInstance(document.querySelector("#unity-canvas"), {
+            dataUrl: "Build/unity.data.unityweb",
+            frameworkUrl: "Build/unity.framework.js.unityweb",
+            codeUrl: "Build/unity.wasm.unityweb",
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: "DefaultCompany",
+            productName: "Test Project",
+            productVersion: "1.0",
+        });
+
+        // GLOBAL FUNCTION FOR UNITY
+        window.UpdateScore = function(score) {
+            console.log("Score from Unity:", score);
+            currentScore = score;
+            document.getElementById('current-score').textContent = score;
+        };
+
+        // BUTTON HANDLERS
+async function saveScore() {
+    const user = tg ? tg.initDataUnsafe?.user : null;
+    const telegramId = user ? user.id.toString() : "test_user_" + Date.now();
+    const userName = user ? user.first_name : "Test User";
+
+    if (currentScore === 0) {
+        alert('Score is 0. Click +1 button in the game!');
+        return;
+    }
+
+    try {
+        const response = await fetch('http://localhost:5000/api/score', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                telegram_id: telegramId,
+                score: currentScore
+            })
+        });
+
+        const result = await response.json();
+        if (result.ok) {
+            alert('✅ Score ' + currentScore + ' saved for ' + userName + '!\nID: ' + telegramId);
+        } else {
+            alert('❌ Error saving score: ' + result.error);
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('🚫 Backend error. Make sure:\n1. Backend is running: python app.py\n2. Port 5000 is available');
+    }
+}
+
+async function loadTop() {
+    try {
+        const response = await fetch('http://localhost:5000/api/top');
+        const scores = await response.json();
+        
+        const topList = document.getElementById('top-list');
+        topList.style.display = 'block';
+        topList.innerHTML = '<h3>🏆 Top-10 Players</h3>';
+        
+        if (scores.length === 0) {
+            topList.innerHTML += '<p>No scores yet. Be the first!</p>';
+            return;
+        }
+        
+        const list = document.createElement('ol');
+        scores.forEach((score, index) => {
+            const item = document.createElement('li');
+            item.innerHTML = `<strong>Player ${score.telegram_id}</strong> - Score: ${score.score}`;
+            list.appendChild(item);
+        });
+        
+        topList.appendChild(list);
+    } catch (error) {
+        console.error('Error:', error);
+        const topList = document.getElementById('top-list');
+        topList.style.display = 'block';
+        topList.innerHTML = '<h3>🏆 Top-10 Players</h3><p>❌ Error loading scores. Check backend.</p>';
+    }
+}
+
+        function showPayment() {
+            alert('Buy Stars\n\nThis is a payment stub. Real app would use Telegram Payments API.');
+        }
+
+        // MOBILE ADAPTATION
+        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+            var meta = document.createElement('meta');
+            meta.name = 'viewport';
+            meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+            document.getElementsByTagName('head')[0].appendChild(meta);
+
+            var canvas = document.querySelector("#unity-canvas");
+            canvas.style.width = "100%";
+            canvas.style.height = "60vh";
+            canvas.style.maxHeight = "500px";
+        }
+
+        console.log("Mini App loaded!");
+    </script>
+</body>
+</html>
