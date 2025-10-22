@@ -9,15 +9,22 @@ permissions:
   pages: write
   id-token: write
 
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
 jobs:
   deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         
       - name: Setup Pages
-        uses: actions/configure-pages@v3
+        uses: actions/configure-pages@v4
         
       - name: Copy files for deployment
         run: |
@@ -28,10 +35,17 @@ jobs:
           mkdir -p Build
           cp -r unity/Build/* ./Build/
           
+          # Проверяем что скопировалось
+          echo "=== Files in root ==="
+          ls -la
+          echo "=== Files in Build ==="
+          ls -la Build/
+          
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v2
+        uses: actions/upload-pages-artifact@v3
         with:
           path: .
           
       - name: Deploy to GitHub Pages
-        uses: actions/deploy-pages@v2
+        id: deployment
+        uses: actions/deploy-pages@v4
