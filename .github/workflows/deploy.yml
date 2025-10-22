@@ -1,4 +1,4 @@
-name: Deploy MiniApp to GitHub Pages
+name: Deploy to GitHub Pages
 
 on:
   push:
@@ -11,25 +11,31 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         
-      - name: Create deployment directory
+      - name: Setup Pages
+        uses: actions/configure-pages@v3
+        
+      - name: Copy files correctly
         run: |
-          mkdir -p deploy
+          # Создаем папку для сайта
+          mkdir -p _site
           
-      - name: Copy MiniApp files
-        run: |
-          # Копируем index.html
-          cp miniapp/index.html deploy/index.html
+          # Копируем index.html из miniapp
+          cp miniapp/index.html _site/index.html
           
-          # Создаем папку Build и копируем ВСЕ Unity файлы
-          mkdir -p deploy/Build
-          cp -r unity/Build/* deploy/Build/
+          # Создаем папку Build и копируем ВСЕ файлы из unity/Build
+          mkdir -p _site/Build
+          cp -r unity/Build/* _site/Build/
           
           # Проверяем что скопировалось
-          ls -la deploy/
-          ls -la deploy/Build/
+          echo "=== Files in _site ==="
+          ls -la _site/
+          echo "=== Files in _site/Build ==="
+          ls -la _site/Build/
+          
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v2
+        with:
+          path: _site
           
       - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v3
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./deploy
+        uses: actions/deploy-pages@v2
