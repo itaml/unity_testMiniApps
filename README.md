@@ -30,6 +30,8 @@ python app.py
 
 Бэкенд будет доступен на: http://localhost:5000
 
+При локальном деплое надо будет в miniapp/index.html поменять backendUrl
+
 ### Frontend
 cd miniapp
 python -m http.server 8000
