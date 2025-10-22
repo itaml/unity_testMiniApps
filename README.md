@@ -10,7 +10,7 @@
 - Python Flask бэкенд
 
 ## 🚀 Live Demo
-- **Mini App**: https://itaml.github.io](https://itaml.github.io/unity_testMiniApps/
+- **Mini App**: https://itaml.github.io/unity_testMiniApps/
 - **Telegram Bot**: @myUnityGame_Bot
 
 ## 📁 Структура проекта
