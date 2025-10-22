@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html>
+<html lang="en-us">
 <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -100,7 +100,7 @@
         <div id="top-list"></div>
     </div>
 
-    <script src="Build/unity.loader.js"></script>
+    <script src="Build/test.loader.js"></script>
     <script>
         // TELEGRAM INIT
         const tg = window.Telegram.WebApp;
@@ -115,7 +115,7 @@
         
         // GAME STATE
         let currentScore = 0;
-        const backendUrl = 'http://localhost:5000';
+        const backendUrl = 'https://your-backend.railway.app'; // ЗАМЕНИ НА СВОЙ БЭКЕНД URL
         
         // Show user info
         const userInfo = document.getElementById('user-info');
@@ -126,86 +126,87 @@
             userInfo.innerHTML = 'Guest (open in Telegram for full features)';
         }
 
-        // UNITY INIT
-        const unityInstance = createUnityInstance(document.querySelector("#unity-canvas"), {
-            dataUrl: "Build/unity.data.unityweb",
-            frameworkUrl: "Build/unity.framework.js.unityweb",
-            codeUrl: "Build/unity.wasm.unityweb",
-            streamingAssetsUrl: "StreamingAssets",
-            companyName: "DefaultCompany",
-            productName: "Test Project",
-            productVersion: "1.0",
-        });
-
-        // GLOBAL FUNCTION FOR UNITY
+        // GLOBAL FUNCTION FOR UNITY - ВАЖНО! Должна быть глобальной
         window.UpdateScore = function(score) {
             console.log("Score from Unity:", score);
             currentScore = score;
             document.getElementById('current-score').textContent = score;
         };
 
+        // UNITY INIT
+        createUnityInstance(document.querySelector("#unity-canvas"), {
+            arguments: [],
+            dataUrl: "Build/test.data.unityweb",
+            frameworkUrl: "Build/test.framework.js.unityweb",
+            codeUrl: "Build/test.wasm.unityweb",
+            streamingAssetsUrl: "StreamingAssets",
+            companyName: "DefaultCompany",
+            productName: "Test Project",
+            productVersion: "1.0",
+        });
+
         // BUTTON HANDLERS
-async function saveScore() {
-    const user = tg ? tg.initDataUnsafe?.user : null;
-    const telegramId = user ? user.id.toString() : "test_user_" + Date.now();
-    const userName = user ? user.first_name : "Test User";
+        async function saveScore() {
+            const user = tg ? tg.initDataUnsafe?.user : null;
+            const telegramId = user ? user.id.toString() : "test_user_" + Date.now();
+            const userName = user ? user.first_name : "Test User";
 
-    if (currentScore === 0) {
-        alert('Score is 0. Click +1 button in the game!');
-        return;
-    }
+            if (currentScore === 0) {
+                alert('Score is 0. Click +1 button in the game!');
+                return;
+            }
 
-    try {
-        const response = await fetch('http://localhost:5000/api/score', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                telegram_id: telegramId,
-                score: currentScore
-            })
-        });
+            try {
+                const response = await fetch(backendUrl + '/api/score', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        telegram_id: telegramId,
+                        score: currentScore
+                    })
+                });
 
-        const result = await response.json();
-        if (result.ok) {
-            alert('✅ Score ' + currentScore + ' saved for ' + userName + '!\nID: ' + telegramId);
-        } else {
-            alert('❌ Error saving score: ' + result.error);
+                const result = await response.json();
+                if (result.ok) {
+                    alert('✅ Score ' + currentScore + ' saved for ' + userName + '!');
+                } else {
+                    alert('❌ Error saving score: ' + result.error);
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('🚫 Backend error. Check backend URL: ' + backendUrl);
+            }
         }
-    } catch (error) {
-        console.error('Error:', error);
-        alert('🚫 Backend error. Make sure:\n1. Backend is running: python app.py\n2. Port 5000 is available');
-    }
-}
 
-async function loadTop() {
-    try {
-        const response = await fetch('http://localhost:5000/api/top');
-        const scores = await response.json();
-        
-        const topList = document.getElementById('top-list');
-        topList.style.display = 'block';
-        topList.innerHTML = '<h3>🏆 Top-10 Players</h3>';
-        
-        if (scores.length === 0) {
-            topList.innerHTML += '<p>No scores yet. Be the first!</p>';
-            return;
+        async function loadTop() {
+            try {
+                const response = await fetch(backendUrl + '/api/top');
+                const scores = await response.json();
+                
+                const topList = document.getElementById('top-list');
+                topList.style.display = 'block';
+                topList.innerHTML = '<h3>🏆 Top-10 Players</h3>';
+                
+                if (scores.length === 0) {
+                    topList.innerHTML += '<p>No scores yet. Be the first!</p>';
+                    return;
+                }
+                
+                const list = document.createElement('ol');
+                scores.forEach((score, index) => {
+                    const item = document.createElement('li');
+                    item.innerHTML = `<strong>Player ${score.telegram_id}</strong> - Score: ${score.score}`;
+                    list.appendChild(item);
+                });
+                
+                topList.appendChild(list);
+            } catch (error) {
+                console.error('Error:', error);
+                const topList = document.getElementById('top-list');
+                topList.style.display = 'block';
+                topList.innerHTML = '<h3>🏆 Top-10 Players</h3><p>❌ Error loading scores. Check backend.</p>';
+            }
         }
-        
-        const list = document.createElement('ol');
-        scores.forEach((score, index) => {
-            const item = document.createElement('li');
-            item.innerHTML = `<strong>Player ${score.telegram_id}</strong> - Score: ${score.score}`;
-            list.appendChild(item);
-        });
-        
-        topList.appendChild(list);
-    } catch (error) {
-        console.error('Error:', error);
-        const topList = document.getElementById('top-list');
-        topList.style.display = 'block';
-        topList.innerHTML = '<h3>🏆 Top-10 Players</h3><p>❌ Error loading scores. Check backend.</p>';
-    }
-}
 
         function showPayment() {
             alert('Buy Stars\n\nThis is a payment stub. Real app would use Telegram Payments API.');
